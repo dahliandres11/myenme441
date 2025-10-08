@@ -48,7 +48,7 @@ between 0-100%, and sets as the duty cycle
 
 except KeyboardInterrupt: # stop gracefully on ctrl-C
     print('\nExiting')
-    
+
 finally:
-pwm.stop()
-GPIO.cleanup()
+    pwm.stop()
+    GPIO.cleanup()
