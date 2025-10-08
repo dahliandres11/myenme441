@@ -1,23 +1,6 @@
 # Dahlia Andres
 # ENME441 Lab 5: PWM and Threaded Callbacks
 
-# From Problem 1:
-
-'''
-
-time.time() function returns current system time in seconds.
-
-Use this function along with PWM control over a GPIO pin:
-
-Light a single LED with brightness B where
-
-B = (sin(2*pi*f*t))^2
-f = 0.2 Hz
-f_base = 500 Hz
-
-DO NOT USE time.sleep()
-
-'''
 
 # Problem 2:
 
@@ -47,13 +30,9 @@ try:
         t = time.time()
         B1 = (math.sin(2*valpi*f*t))**2
         B2 = (math.sin(2*valpi*f*t - phi))**2
-        pwm.ChangeDutyCycle(B1*100.0)
-        pwm.ChangeDutyCycle(B2*100.0)
+        pwm1.ChangeDutyCycle(B1*100.0)
+        pwm2.ChangeDutyCycle(B2*100.0)
 
-'''
-Loop reads current time, turns into brightness level via function B, mapping
-between 0-100%, and sets as the duty cycle
-'''
 
 except KeyboardInterrupt: # stop gracefully on ctrl-C
     print('\nExiting')
