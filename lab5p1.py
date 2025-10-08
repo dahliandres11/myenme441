@@ -3,21 +3,20 @@
 
 # Problem 1:
 
-'''
 
-time.time() function returns current system time in seconds.
+#time.time() function returns current system time in seconds.
 
-Use this function along with PWM control over a GPIO pin:
+#Use this function along with PWM control over a GPIO pin:
 
-Light a single LED with brightness B where
+#Light a single LED with brightness B where
 
-B = (sin(2*pi*f*t))^2
-f = 0.2 Hz
-f_base = 500 Hz
+#B = (sin(2*pi*f*t))^2
+#f = 0.2 Hz
+#f_base = 500 Hz
 
-DO NOT USE time.sleep()
+#DO NOT USE time.sleep()
 
-'''
+
 import RPi.GPIO as GPIO
 import time
 import math
@@ -41,10 +40,10 @@ try:
         B = (math.sin(2*valpi*f*t))**2
         pwm.ChangeDutyCycle(B*100)  # Using function B to change duty cycle over time
 
-'''
-Loop reads current time, turns into brightness level via function B, mapping
-between 0-100%, and sets as the duty cycle
-'''
+
+#Loop reads current time, turns into brightness level via function B, mapping
+#between 0-100%, and sets as the duty cycle
+
 
 except KeyboardInterrupt: # stop gracefully on ctrl-C
     print('\nExiting')
