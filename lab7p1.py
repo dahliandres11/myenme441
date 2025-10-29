@@ -1,205 +1,157 @@
+# ENME441 – Lab 7, Problem 1
 # Dahlia Andres
-# ENME441 Lab 7 Problem 1
-#
-# - Uses TCP sockets (bind, listen, accept, recv, send)
-# - Builds HTTP response by hand (status line, headers, blank line, body)
-# - Uses a POST form (application/x-www-form-urlencoded)
-# - Has a tiny parsePOSTdata() helper like in lecture (split at \r\n\r\n, '&', '=')
-#
-# Controls 3 LEDs with PWM duty cycle (0–100%).
-
 import socket
 import RPi.GPIO as GPIO
 import time
 
-# ======== SETTINGS (edit if needed) ========
-HOST = ''          # listen on all interfaces
-PORT = 8080        # 8080 avoids sudo
-PWM_FREQ = 1000    # Hz (flicker-free for LEDs)
-LED_PINS = [17, 27, 22]   # BCM pins for LED1, LED2, LED3
-# ==========================================
-
-# ----- GPIO setup -----
+# -------------------- GPIO/PWM SETUP --------------------
 GPIO.setmode(GPIO.BCM)
+
+# Choose 3 BCM pins for LEDs:
+LED_PINS = [17, 27, 22]          # change if you wired differently
+FREQ_HZ = 500                    # PWM base frequency
+
 for p in LED_PINS:
     GPIO.setup(p, GPIO.OUT)
 
-pwms = [GPIO.PWM(p, PWM_FREQ) for p in LED_PINS]
-for ch in pwms:
-    ch.start(0.0)  # start all LEDs at 0%
+PWMS = [GPIO.PWM(p, FREQ_HZ) for p in LED_PINS]
+for pwm in PWMS:
+    pwm.start(0.0)               # start at 0% duty
 
-# Persisted brightness values (0..100)
-levels = [0, 0, 0]
+# Track brightness state for each LED (0–100)
+brightness = [0, 0, 0]
 
-# ----- Helper to parse POST body (lecture-style) -----
-def parsePOSTdata(raw_bytes):
-    """
-    raw_bytes is the HTTP message body only, e.g. b"led=2&brightness=60".
-    Return a dict like {"led": "2", "brightness": "60"}.
-    """
+def set_led(idx, duty):
+    """Clamp and set duty cycle for LED idx."""
+    idx = max(0, min(2, int(idx)))
+    duty = max(0, min(100, int(duty)))
+    brightness[idx] = duty
+    PWMS[idx].ChangeDutyCycle(duty)
+
+# -------------------- SIMPLE POST PARSER --------------------
+# Matches the parse approach shown in the slides: find '\r\n\r\n',
+# read the body, then split on & and = into dict.  (No URL decoding needed here.)
+# (See "parsePOSTdata" helper concept.) 
+# Ref: lecture slide "Helper Function: parsePOSTdata()" pattern.
+def parse_post_dict(raw_request_bytes):
     try:
-        body = raw_bytes.decode('utf-8')
-    except UnicodeDecodeError:
-        body = ''
-    data = {}
-    pairs = body.split('&')
-    for pair in pairs:
-        if '=' in pair:
-            k, v = pair.split('=', 1)
-            data[k] = v
-    return data
+        msg = raw_request_bytes.decode('utf-8', errors='ignore')
+        body_start = msg.find('\r\n\r\n')
+        if body_start == -1:
+            return {}
+        body = msg[body_start+4:]
+        pairs = body.split('&')
+        out = {}
+        for pair in pairs:
+            if '=' in pair:
+                k, v = pair.split('=', 1)
+                out[k] = v
+        return out
+    except Exception:
+        return {}
 
-# ----- Build the HTML page we serve -----
-def build_html():
-    # Keep it very simple (no JS). Exactly the POST form idea in lecture.
-    return f"""<!DOCTYPE html>
-<html>
+# -------------------- HTML PAGE --------------------
+def html_page():
+    # Build a minimal form: 3 radio buttons (choose LED 0/1/2), one range slider (0-100), and Submit.
+    # After submit, page re-renders and shows current values for all LEDs.
+    # Uses POST because we modify a resource (GPIO state) – exactly as recommended in slides.
+    # Ref: POST vs GET, forms, and Content-Type header examples.
+    return f"""<html>
 <head>
   <meta charset="utf-8">
-  <title>ENME441 LED PWM (Sockets + POST)</title>
+  <title>ENME441 Lab 7 – LED PWM (Problem 1)</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; max-width: 520px; margin: 24px auto; }}
+    fieldset {{ padding: 12px 16px; }}
+    .row {{ display:flex; gap:1rem; align-items:center; margin:10px 0; }}
+    .values {{ margin-top: 16px; padding: 8px 12px; border: 1px solid #ccc; }}
+    .values b {{ display:inline-block; width: 2em; }}
+  </style>
 </head>
 <body>
-  <h2>LED Brightness Control</h2>
-  <p><strong>Current Levels</strong></p>
-  <ul>
-    <li>LED 1: {levels[0]}%</li>
-    <li>LED 2: {levels[1]}%</li>
-    <li>LED 3: {levels[2]}%</li>
-  </ul>
-
+  <h2>LED Brightness Control (No JavaScript, POST)</h2>
   <form action="/" method="POST">
-    <p><strong>Choose LED:</strong><br>
-      <label><input type="radio" name="led" value="1" checked> LED 1</label><br>
-      <label><input type="radio" name="led" value="2"> LED 2</label><br>
-      <label><input type="radio" name="led" value="3"> LED 3</label>
-    </p>
+    <fieldset>
+      <legend>Select LED</legend>
+      <label><input type="radio" name="led" value="0" checked> LED 0</label>
+      <label><input type="radio" name="led" value="1"> LED 1</label>
+      <label><input type="radio" name="led" value="2"> LED 2</label>
+    </fieldset>
 
-    <p>
-      <label><strong>Brightness (0–100):</strong>
-        <input type="range" name="brightness" min="0" max="100" value="50">
-      </label>
-    </p>
-
-    <p><input type="submit" value="Set Brightness"></p>
+    <div class="row">
+      <label for="val"><b>Brightness</b> (0–100):</label>
+      <input type="range" id="val" name="value" min="0" max="100" value="50">
+      <input type="submit" value="Set">
+    </div>
   </form>
+
+  <div class="values">
+    <div>Current values:</div>
+    <div>LED <b>0</b>: {brightness[0]}%</div>
+    <div>LED <b>1</b>: {brightness[1]}%</div>
+    <div>LED <b>2</b>: {brightness[2]}%</div>
+  </div>
 </body>
-</html>
-"""
+</html>"""
 
-# ----- Send a minimal HTTP/1.1 response -----
-def send_response(conn, body_str, status="200 OK", content_type="text/html"):
-    body = body_str.encode('utf-8')
-    # status line + headers + blank line + body (exactly as in slides)
-    resp = (
-        f"HTTP/1.1 {status}\r\n"
-        f"Content-Type: {content_type}; charset=utf-8\r\n"
-        f"Content-Length: {len(body)}\r\n"
+# -------------------- HTTP RESPONSE HELPERS --------------------
+def http_response(body_str, status_line="HTTP/1.1 200 OK\r\n"):
+    headers = (
+        "Content-Type: text/html\r\n"
         "Connection: close\r\n"
+        f"Content-Length: {len(body_str.encode('utf-8'))}\r\n"
         "\r\n"
-    ).encode('utf-8') + body
-    conn.sendall(resp)
+    )
+    return (status_line + headers + body_str).encode('utf-8')
 
-# ----- Handle one client connection -----
-def handle_client(conn):
-    # Read up to 4 KB to get headers (and maybe all of body)
-    req = conn.recv(4096)
-    if not req:
-        return
+# -------------------- SOCKET SERVER (PORT 8080) --------------------
+# Following the basic socket server flow from the slides: socket(), bind(), listen(), accept(), recv(), send(), close()
+# Using port 8080 as recommended to avoid needing sudo. 
+HOST = ""         # listen on all interfaces
+PORT = 8080       # non-privileged; access via http://raspberrypi.local:8080
+BACKLOG = 3
 
-    # Split headers/body by \r\n\r\n
-    header_end = req.find(b"\r\n\r\n")
-    if header_end == -1:
-        # No valid HTTP, just show the page anyway
-        send_response(conn, build_html())
-        return
-
-    headers = req[:header_end].decode('utf-8', errors='ignore')
-    body = req[header_end+4:]
-
-    # First header line: "METHOD /path HTTP/1.1"
-    first_line = headers.split("\r\n", 1)[0]
-    parts = first_line.split(" ")
-    method = parts[0] if len(parts) > 0 else ""
-    path   = parts[1] if len(parts) > 1 else "/"
-
-    # Only serve "/" (keep it super basic). Otherwise 404.
-    if path != "/":
-        send_response(conn, "<h1>404 Not Found</h1>", status="404 Not Found")
-        return
-
-    if method.upper() == "POST":
-        # Find content-length to read remaining body bytes if needed
-        content_length = 0
-        for line in headers.split("\r\n"):
-            if line.lower().startswith("content-length:"):
-                try:
-                    content_length = int(line.split(":", 1)[1].strip())
-                except:
-                    content_length = 0
-                break
-
-        # If our first recv didn't include all of the body, read the rest
-        remaining = content_length - len(body)
-        while remaining > 0:
-            chunk = conn.recv(min(4096, remaining))
-            if not chunk:
-                break
-            body += chunk
-            remaining -= len(chunk)
-
-        # Parse POST key=value pairs
-        fields = parsePOSTdata(body)
-        led_raw = fields.get("led", "1")
-        br_raw  = fields.get("brightness", "0")
-
-        # Update PWM safely
-        try:
-            led_idx = int(led_raw) - 1  # 1..3 -> 0..2
-        except ValueError:
-            led_idx = 0
-        if led_idx not in (0, 1, 2):
-            led_idx = 0
-
-        try:
-            b = int(br_raw)
-        except ValueError:
-            b = 0
-        if b < 0: b = 0
-        if b > 100: b = 100
-
-        levels[led_idx] = b
-        pwms[led_idx].ChangeDutyCycle(b)
-
-        # After POST, show the updated page
-        send_response(conn, build_html())
-        return
-
-    # Default: GET -> show page
-    send_response(conn, build_html())
-
-# ----- Main server loop (accept one client at a time) -----
 def main():
-    print(f"Serving on http://raspberrypi.local:{PORT}  (or http://<Pi-IP>:{PORT})")
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # IPv4 + TCP
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((HOST, PORT))
+    s.listen(BACKLOG)
+    print(f"Serving on http://raspberrypi.local:{PORT}  (Ctrl+C to stop)")
+
     try:
-        # Allow quick restart
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((HOST, PORT))
-        s.listen(1)  # keep it simple
         while True:
-            conn, addr = s.accept()   # blocking (as in slides)
+            conn, (addr, cport) = s.accept()
             try:
-                handle_client(conn)
+                data = conn.recv(2048)  # read request (headers + maybe body)
+                req = data.decode('utf-8', errors='ignore')
+
+                # If it's a POST, parse body and update PWM
+                if req.startswith('POST'):
+                    post_dict = parse_post_dict(data)
+                    if 'led' in post_dict and 'value' in post_dict:
+                        set_led(post_dict['led'], post_dict['value'])
+
+                    # Serve updated page
+                    body = html_page()
+                    conn.sendall(http_response(body))
+
+                else:
+                    # For GET (first load or manual refresh), just serve the page
+                    body = html_page()
+                    conn.sendall(http_response(body))
+
+            except Exception as e:
+                err_body = f"<html><body><h3>Error</h3><pre>{e}</pre></body></html>"
+                conn.sendall(http_response(err_body, status_line="HTTP/1.1 500 Internal Server Error\r\n"))
             finally:
                 conn.close()
+    except KeyboardInterrupt:
+        pass
     finally:
+        for pwm in PWMS:
+            pwm.stop()
+        GPIO.cleanup()
         s.close()
 
-try:
+if __name__ == "__main__":
     main()
-except KeyboardInterrupt:
-    pass
-finally:
-    for ch in pwms:
-        ch.stop()
-    GPIO.cleanup()
