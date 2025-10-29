@@ -1,10 +1,13 @@
-# ENME441 – Lab 7, Problem 1
+# ENME441 Lab  Problem 1
 # Dahlia Andres
+
+# ACCESS: http://172.20.10.3:8080
+
 import socket
 import RPi.GPIO as GPIO
 import time
 
-# -------------------- GPIO/PWM SETUP --------------------
+#GPIO/PWM SETUP
 GPIO.setmode(GPIO.BCM)
 
 # Choose 3 BCM pins for LEDs:
@@ -59,7 +62,7 @@ def html_page():
     return f"""<html>
 <head>
   <meta charset="utf-8">
-  <title>ENME441 Lab 7 – LED PWM (Problem 1)</title>
+  <title>ENME441 Lab 7</title>
   <style>
     body {{ font-family: Arial, sans-serif; max-width: 520px; margin: 24px auto; }}
     fieldset {{ padding: 12px 16px; }}
@@ -69,27 +72,27 @@ def html_page():
   </style>
 </head>
 <body>
-  <h2>LED Brightness Control (No JavaScript, POST)</h2>
+  <h2>LED Brightness Control</h2>
   <form action="/" method="POST">
     <fieldset>
       <legend>Select LED</legend>
-      <label><input type="radio" name="led" value="0" checked> LED 0</label>
-      <label><input type="radio" name="led" value="1"> LED 1</label>
-      <label><input type="radio" name="led" value="2"> LED 2</label>
+      <label><input type="radio" name="led" value="0" checked> LED 1</label>
+      <label><input type="radio" name="led" value="1"> LED 2</label>
+      <label><input type="radio" name="led" value="2"> LED 3</label>
     </fieldset>
 
     <div class="row">
       <label for="val"><b>Brightness</b> (0–100):</label>
       <input type="range" id="val" name="value" min="0" max="100" value="50">
-      <input type="submit" value="Set">
+      <input type="submit" value="Change Brightness">
     </div>
   </form>
 
   <div class="values">
     <div>Current values:</div>
-    <div>LED <b>0</b>: {brightness[0]}%</div>
-    <div>LED <b>1</b>: {brightness[1]}%</div>
-    <div>LED <b>2</b>: {brightness[2]}%</div>
+    <div>LED <b>1</b>: {brightness[0]}%</div>
+    <div>LED <b>2</b>: {brightness[1]}%</div>
+    <div>LED <b>3</b>: {brightness[2]}%</div>
   </div>
 </body>
 </html>"""
