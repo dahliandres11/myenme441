@@ -17,7 +17,6 @@
 import socket
 import RPi.GPIO as GPIO
 
-# ---------------- GPIO / PWM SETUP ----------------
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
@@ -39,7 +38,6 @@ def set_led(i, val):
     brightness[i] = val
     PWMS[i].ChangeDutyCycle(val)
 
-# ---------------- LECTURE HELPER (unchanged) ----------------
 def parsePOSTdata(data):
     data_dict = {}
     idx = data.find('\r\n\r\n') + 4  # find start of body
@@ -51,7 +49,7 @@ def parsePOSTdata(data):
             data_dict[key_val[0]] = key_val[1]
     return data_dict
 
-# ---------------- READ FULL HTTP REQUEST ----------------
+# Read full html request
 def read_http_request(conn):
     data = b""
     while b"\r\n\r\n" not in data:
@@ -86,7 +84,7 @@ def get_request_line_and_path(req_text):
     path = parts[1] if len(parts) > 1 else "/"
     return method, path
 
-# ---------------- RESPONSES ----------------
+# responses
 def http_response_html(body, status="200 OK"):
     headers = (
         f"HTTP/1.1 {status}\r\n"
@@ -106,7 +104,7 @@ def http_response_json(obj_str, status="200 OK"):
     )
     return (headers + obj_str).encode("utf-8")
 
-# ---------------- HTML + JS (no reloads) ----------------
+# html + JS (no reloads)
 def html_page():
     # Sliders reflect current brightness; JS posts to /set on 'input'
     b0, b1, b2 = brightness
@@ -177,7 +175,6 @@ def html_page():
 </body>
 </html>"""
 
-# ---------------- MAIN SERVER (routes: "/" and "/set") ----------------
 def main():
     HOST, PORT = "", 8080
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -197,7 +194,6 @@ def main():
                     conn.sendall(http_response_html(html_page()))
 
                 elif method == "POST" and path == "/set":
-                    # Use the lecture helper to parse POST
                     post = parsePOSTdata(req_text)
                     if "led" in post and "value" in post:
                         set_led(post["led"], post["value"])
