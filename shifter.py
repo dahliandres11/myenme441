@@ -1,48 +1,48 @@
-# Dahlia Andres
-# ENME441 Lab 6
+# Shift register class
 
-# class must be instantiated by passing the serial, clock, and latch pin numbers for shift register
-# assign these values to "serialPin", "clockPin", and "latchPin"
-# defined in the __init__() method
-# shiftByte() as public
-# ping() as private
+from RPi import GPIO
+from time import sleep
 
-import RPi.GPIO as GPIO
-import time
+GPIO.setmode(GPIO.BCM)
 
-class Shifter:
-  def __init__(self, serialPin = 23, latchPin = 24, clockPin = 25):
-    self.serialPin = serialPin
-    self.latchPin = latchPin
-    self.clockPin = clockPin
+class Shifter():
 
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(self.serialPin, GPIO.OUT, initial = 0)
-    GPIO.setup(self.latchPin, GPIO.OUT, initial = 0)
-    GPIO.setup(self.clockPin, GPIO.OUT, initial = 0)  
+    def __init__(self, data, clock, latch):
+        self.dataPin = data
+        self.latchPin = latch
+        self.clockPin = clock
+        GPIO.setup(self.dataPin, GPIO.OUT)
+        GPIO.setup(self.latchPin, GPIO.OUT)
+        GPIO.setup(self.clockPin, GPIO.OUT)
 
-def __ping(self, p):
-  GPIO.output(p,1)       # ping the clock pin or latch pin
-  time.sleep(0)
-  GPIO.output(p,0)
+    def ping(self, p):  # ping the clock or latch pin
+        GPIO.output(p,1)
+        sleep(0)
+        GPIO.output(p,0)
 
-def shiftByte(self,b):                 # send a byte of data to the output
-  b &= 0xFF 
-  for i in range(8):
-    GPIO.output(self.serialPin, b & (1<<i))
-    self.__ping(self.clockPin)                # add bit to register
-  self.__ping(self.latchPin)                  # send register to output
+    # Shift all bits in an arbitrary-length word, allowing
+    # multiple 8-bit shift registers to be chained (with overflow
+    # of SR_n tied to input of SR_n+1):
+    def shiftWord(self, dataword, num_bits):
+        for i in range((num_bits+1) % 8):  # Load bits short of a byte with 0
+            # self.dataPin.value(0)  # MicroPython for ESP32
+            GPIO.output(self.dataPin, 0) 
+            self.ping(self.clockPin)
+        for i in range(num_bits):          # Send the word
+            # self.dataPin.value(dataword & (1<<i))  # MicroPython for ESP32
+            GPIO.output(self.dataPin, dataword & (1<<i))
+            self.ping(self.clockPin)
+        self.ping(self.latchPin)
 
-def cleanup(self):
-    GPIO.cleanup()
+    # Shift all bits in a single byte:
+    def shiftByte(self, databyte):
+        self.shiftWord(databyte, 8)
 
 
-'''
-Note: I was testing up until part 6 with my hardware, however
-when I went to finish up the last part yesterday, I realized that I 
-lost my shift register so I haven't been able to test it with a dry run
-using hardware. I only have the code here and my bug.py file hasn't been
-tested yet until I get my part deliverd tomorrow. I thought I could still submit
-my code and upload the video tomorrow at the latest when I receive my new shift register.
-I apologize for the inconvenience and understand for points being lost.
-'''
+# Example:
+#
+# from time import sleep
+# s = Shifter(data=16,clock=20,latch=21)   # convenient Pi pins
+# for i in range(256):
+#     s.shiftByte(i)
+#     sleep(0.1)
