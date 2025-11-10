@@ -116,10 +116,17 @@ if __name__ == '__main__':
 
     # If separate multiprocessing.lock objects are used, the second motor
     # will run in parallel with the first motor:
-    m2.rotate(-90)
+    m2.rotate(180)
+    m2.rotate(-45)
     m2.rotate(45)
     m2.rotate(-90)
-    m2.rotate(45)
+
+    # only -90 works right now
+
+    # m2.rotate(180)
+    # m2.rotate(-45)
+    # m2.rotate(45)
+    # m2.rotate(-90)
  
     # While the motors are running in their separate processes, the main
     # code can continue doing its thing: 
@@ -128,4 +135,3 @@ if __name__ == '__main__':
             pass
     except:
         print('\nend')
-
