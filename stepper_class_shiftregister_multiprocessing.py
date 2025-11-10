@@ -98,16 +98,17 @@ if __name__ == '__main__':
     # Use multiprocessing.Lock() to prevent motors from trying to 
     # execute multiple operations at the same time:
     lock = multiprocessing.Lock()
+    lock1 = multiprocessing.Lock()
 
     # Instantiate 2 Steppers:
     m1 = Stepper(s, lock)
-    m2 = Stepper(s, lock)
+    m2 = Stepper(s, lock1)
 
     # Zero the motors:
     m1.zero()
     m2.zero()
 
-    # Move as desired, with eacg step occuring as soon as the previous 
+    # Move as desired, with each step occuring as soon as the previous 
     # step ends:
     m1.rotate(-90)
     m1.rotate(45)
