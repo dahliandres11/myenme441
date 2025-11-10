@@ -98,11 +98,10 @@ if __name__ == '__main__':
     # Use multiprocessing.Lock() to prevent motors from trying to 
     # execute multiple operations at the same time:
     lock = multiprocessing.Lock()
-    lock1 = multiprocessing.Lock()
 
     # Instantiate 2 Steppers:
     m1 = Stepper(s, lock)
-    m2 = Stepper(s, lock1)
+    m2 = Stepper(s, lock)
 
     # Zero the motors:
     m1.zero()
