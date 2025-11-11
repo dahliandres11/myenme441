@@ -107,7 +107,7 @@ if __name__ == '__main__':
     m1.zero()
     m2.zero()
 
-    # Move as desired, with each step occuring as soon as the previous 
+    # Move as desired, with eacg step occuring as soon as the previous 
     # step ends:
     m1.rotate(-90)
     m1.rotate(45)
@@ -120,13 +120,6 @@ if __name__ == '__main__':
     m2.rotate(-45)
     m2.rotate(45)
     m2.rotate(-90)
-
-    # only -90 works right now
-
-    # m2.rotate(180)
-    # m2.rotate(-45)
-    # m2.rotate(45)
-    # m2.rotate(-90)
  
     # While the motors are running in their separate processes, the main
     # code can continue doing its thing: 
@@ -135,3 +128,4 @@ if __name__ == '__main__':
             pass
     except:
         print('\nend')
+
