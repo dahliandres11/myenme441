@@ -38,7 +38,7 @@ class Stepper:
     def __init__(self, shifter, lock, parallel_drive=False):
         self.s = shifter
         self.parallel_drive = parallel_drive
-        self.angle = multiprocessing.Value('i', 0)
+        self.angle = multiprocessing.Value('f', 0)
         self.step_state = 0
         self.shifter_bit_start = 4 * Stepper.num_steppers
         self.lock = lock
@@ -94,7 +94,7 @@ class Stepper:
 
     def rotate(self, delta):
         time.sleep(0.1)
-        p = multiprocessing.Process(target=self.__rotate, args=(delta,))
+        p = multiprocessing.Process(target=self.__rotate, daemon=True, args=(delta,))
         p.start()
 
     def goAngle(self, angle):
@@ -113,10 +113,10 @@ class Stepper:
         else:
             if direct >= 0: 
                 direction = 1                   #counterclockwise  
-                self.rotate(direction*direct)
+                self.rotate(direction*wrap)
             else:
                 direction = -1                   #clockwise
-                self.rotate(direction*direct)
+                self.rotate(direction*wrap)
                 
     def zero(self):
         self.angle.value = 0
@@ -144,11 +144,15 @@ if __name__ == '__main__':
     m2.zero()
 
     # Now both motors will step simultaneously
-    m1.rotate(90)
+    m1.rotate(-180)
     m2.rotate(180)
-    
+    print('Now testing go angle. should move from m1 0-135 then 135-359 ')
+    m1.zero()
+    m1.goAngle(135)
+    m1.goAngle(359)
+
     try:
         while True:
             pass
     except KeyboardInterrupt:
-        print('\nend')ww
+        print('\nend')
