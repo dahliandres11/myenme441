@@ -152,14 +152,18 @@ if __name__ == '__main__':
 
     print("--- Starting Parallel Motor Moves ---")
     
-    # These two commands will now run at the same time,
-    # "interleaving" their steps.
-    m1.rotate(360)
-    m2.rotate(-360)
+    m1.zero()
+    m2.zero()
+
+    m1.goAngle(90)
+    m1.goAngle(-45)
+
+    m2.goAngle(-90)
+    m2.goAngle(45)
     
-    # You can queue up more
-    m1.rotate(90)
-    m2.rotate(180)
+    m1.goAngle(-135)
+    m1.goAngle(135)
+    m1.goAngle(0)
 
     print("--- Main script is done queuing. ---")
     
