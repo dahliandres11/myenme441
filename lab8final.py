@@ -20,20 +20,24 @@ class Stepper:
     MODIFIED FOR PARALLEL OPERATION.
     """
 
-    # --- (Class attributes are mostly the same) ---
+    # --- CHANGE #1: Remove shifter_outputs from class attributes ---
     num_steppers = 0
     # This is the "master whiteboard" for all 8 bits
-    shifter_outputs = multiprocessing.Value('i', 0) # 'i' for integer
+    # shifter_outputs = multiprocessing.Value('i', 0) # <-- REMOVE THIS LINE
     seq = [0b0001,0b0011,0b0010,0b0110,0b0100,0b1100,0b1000,0b1001]
     delay = 1200
     steps_per_degree = 4096/360
 
-    def __init__(self, shifter, lock):
+    # --- CHANGE #2: Modify __init__ to accept the shared value ---
+    def __init__(self, shifter, lock, shared_outputs):
         self.s = shifter
         self.angle = 0
         self.step_state = 0
         self.shifter_bit_start = 4*Stepper.num_steppers
         self.lock = lock  # This is the SHARED lock
+        
+        # Store the SHARED output value as an INSTANCE attribute
+        self.shifter_outputs = shared_outputs
 
         Stepper.num_steppers += 1
 
@@ -58,12 +62,14 @@ class Stepper:
         # e.g., for m2: 0b1001 << 4 -> 0b10010000
         pattern_mask = Stepper.seq[self.step_state] << self.shifter_bit_start
 
+        # --- CHANGE #3: Update __step to use self.shifter_outputs ---
         # 3. Update the shared "whiteboard"
         # This is the critical change. We must acquire the lock *only*
         # for this update.
         with self.lock:
             # We use .value to access the shared multiprocessing value
-            current_outputs = Stepper.shifter_outputs.value
+            # Use the INSTANCE attribute, not the class one
+            current_outputs = self.shifter_outputs.value
 
             # First, clear *only* our 4 bits
             cleared_outputs = current_outputs & clear_mask
@@ -72,7 +78,8 @@ class Stepper:
             new_outputs = cleared_outputs | pattern_mask
             
             # Save the new master value
-            Stepper.shifter_outputs.value = new_outputs
+            # Use the INSTANCE attribute, not the class one
+            self.shifter_outputs.value = new_outputs
             
             # Send the complete 8-bit command to the hardware
             self.s.shiftByte(new_outputs)
@@ -128,30 +135,29 @@ if __name__ == '__main__':
 
     s = Shifter(data=16,latch=20,clock=21)
 
+    # --- CHANGE #4: Create shared outputs in main ---
     # We still create ONE shared lock
     lock = multiprocessing.Lock()
+    # Create the shared "whiteboard" value here in main
+    shifter_outputs = multiprocessing.Value('i', 0)
 
-    # We give BOTH motors the SAME lock
-    m1 = Stepper(s, lock)
-    m2 = Stepper(s, lock)
+    # We give BOTH motors the SAME lock AND the SAME shared value
+    m1 = Stepper(s, lock, shifter_outputs)
+    m2 = Stepper(s, lock, shifter_outputs)
 
     m1.zero()
     m2.zero()
 
     print("--- Starting Parallel Motor Moves ---")
     
-    m1.zero()
-    m2.zero()
-
-    m1.goAngle(90)
-    m1.goAngle(-45)
-
-    m2.goAngle(-90)
-    m2.goAngle(45)
+    # These two commands will now run at the same time,
+    # "interleaving" their steps.
+    m1.rotate(360)
+    m2.rotate(-360)
     
-    m1.goAngle(-135)
-    m1.goAngle(135)
-    m1.goAngle(0)
+    # You can queue up more
+    m1.rotate(90)
+    m2.rotate(180)
 
     print("--- Main script is done queuing. ---")
     
