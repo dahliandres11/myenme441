@@ -60,13 +60,15 @@ class Stepper:
         # 2. Build the "Pattern Mask" for *this motor's bits*
         # e.g., for m1: 0b0110 << 0 -> 0b00000110
         # e.g., for m2: 0b1001 << 4 -> 0b10010000
-        pattern_mask = Stepper.seq[self.step_state] << self.shifter_bit_start
+
 
         # --- CHANGE #3: Update __step to use self.shifter_outputs ---
         # 3. Update the shared "whiteboard"
         # This is the critical change. We must acquire the lock *only*
         # for this update.
         with self.lock:
+
+            pattern_mask = Stepper.seq[self.step_state] << self.shifter_bit_start
             # We use .value to access the shared multiprocessing value
             # Use the INSTANCE attribute, not the class one
             current_outputs = self.shifter_outputs.value
