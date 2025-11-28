@@ -142,6 +142,7 @@ def fetch_and_parse_positions(url: str):
             'theta': coords.get('theta'),
             'z': coords.get('z') 
         }
+    print(output_dict)
     world_cart = polar_to_cartesian(output_dict)
     target = global_to_local(output_dict)     
     return world_cart, target
@@ -1444,3 +1445,4 @@ if __name__ == "__main__":
     tilt = Stepper(s, lock2, parallel_drive=False)
 
     run_server(host='', port=80)
+
