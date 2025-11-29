@@ -60,10 +60,10 @@ def global_to_local(output_dict:dict, turret_height:float=0.0, globe_height:floa
     Returns a dictionary with local 'x', 'y', 'z' for each turret and globe.
     """
     if my_turret_number =='':
-        my_turret_number = 1
+        my_turret_number = '1'
         print('turret number not assigned')
 
-    theta = output_dict['turrets'][str(my_turret_number)]['theta']
+    theta = output_dict['turrets'][my_turret_number]['theta']
     my_global_loc = polar_to_cartesian(output_dict['turrets'][my_turret_number])
     rotation_matrix = np.array([[-np.cos(theta), np.sin(theta), 0],
                                 [-np.sin(theta), -np.cos(theta), 0],
@@ -75,6 +75,7 @@ def global_to_local(output_dict:dict, turret_height:float=0.0, globe_height:floa
             global_coords = polar_to_cartesian_dict[key][item]
             relative_global_vector = np.array([float(global_coords['x']), float(global_coords['y']), float (global_coords['z'])]) - np.array([float(my_global_loc['x']), float(my_global_loc['y']), float (my_global_loc['z'])])
             local_vector = np.matmul(rotation_matrix, relative_global_vector)
+            
             if key == 'turrets':
                 local_vector[2] -= turret_height
             else:
@@ -1383,7 +1384,7 @@ def handle_client(conn):
             url = turret_state['json_url']
             my_turret_num = turret_state['turret_number']
             stop = False
-            world_cart_dict,targets = fetch_and_parse_positions(url,my_turret_num)
+            world_cart_dict,targets = fetch_and_parse_positions(url,my_turret_number=my_turret_num)
             world_state = update_world_state_from_global_coords(world_state, world_cart_dict)
             # Optionally: parse JSON here, update world_state, etc.
             # Then start a background thread to run the sequence.
