@@ -158,7 +158,7 @@ def fetch_and_parse_positions(url: str, my_turret_number):
             'z': coords.get('z') 
         }
     world_cart = polar_to_cartesian(output_dict)
-    target = global_to_local(output_dict,my_turret_number)     
+    target = global_to_local(output_dict,my_turret_number = my_turret_number)     
     return world_cart, target
 def rad_to_deg(rad): # because inverse kinematics returns radians and steppers need degrees
     """
@@ -1271,7 +1271,7 @@ def auto_op(turret_state,targets, pan_stepper, tilt_stepper, stop_flag):
         for items in angles[key]:
             if stop_flag:
                 break
-            if turret_state.get('turret_number') !=angles['turret'][items]:
+            if turret_state.get('turret_number') !=angles['turrets'][items]:
                 pan_angle = rad_to_deg(float(angles[key][items].get('theta1')))
                 tilt_angle = rad_to_deg(float(angles[key][items].get('theta2')))
                 turret_state['status'] = f"Aiming at target (pan: {pan_angle}°, tilt: {tilt_angle}°)"
