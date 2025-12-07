@@ -75,7 +75,7 @@ class Stepper:
     
     def step (self, dir,speed):
         self.__step(dir)
-        time.sleep(Stepper.delay*speed/1e6)
+        time.sleep(Stepper.delay/(1e6*speed))
 
     def __rotate(self, delta):
         self.lock.acquire()                 # wait until the lock is available
